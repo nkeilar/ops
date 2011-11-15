@@ -23,12 +23,15 @@ def development():
     """
     _not_localhost()
     if len(env.hosts) == 0:
-        env.hosts = ['dev.bueda.com:%(ssh_port)d' % env]
+        env.hosts = ['ved.noshly.com:%(ssh_port)d' % env]
     env.allow_no_tag = True
     env.deployment_type = "DEV"
     if (hasattr(env, 'pip_requirements')
             and hasattr(env, 'pip_requirements_dev')):
         env.pip_requirements += env.pip_requirements_dev
+    #Since Pinax only specifies one requirements file
+    else:
+        env.pip_requirements = env.pip_requirements_dev
 
 def staging():
     """[Env] Staging server environment
@@ -41,7 +44,7 @@ def staging():
     """
     _not_localhost()
     if len(env.hosts) == 0:
-        env.hosts = ['dev.bueda.com:%(ssh_port)d' % env]
+        env.hosts = ['ved.noshly.com:%(ssh_port)d' % env]
     env.allow_no_tag = True
     env.deployment_type = "STAGING"
     env.path += '-staging'

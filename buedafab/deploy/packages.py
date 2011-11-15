@@ -69,6 +69,7 @@ def _install_manual_packages(path=None):
 def _install_pip_requirements(path=None):
     require('virtualenv')
     require('pip_requirements')
+    
     if not path:
         require('release_path')
         path = env.release_path
@@ -78,7 +79,7 @@ def _install_pip_requirements(path=None):
         return
     with cd(path):
         for requirements_file in env.pip_requirements:
-            run('%s -E %s -s -r %s' % (env.pip_install_command,
+            run('%s -E %s -r %s' % (env.pip_install_command,
                     env.virtualenv, requirements_file))
 
 def install_requirements(deployed=False):
@@ -96,11 +97,10 @@ def install_requirements(deployed=False):
     """
     require('release_path')
     require('virtualenv')
-
+    
     with settings(cd(env.release_path), warn_only=True):
         virtualenv_exists = exists('%(virtualenv)s' % env)
-    if (deployed or not virtualenv_exists or
-            confirm(yellow("Reinstall Python dependencies?"), default=True)):
+    if (deployed or not virtualenv_exists or confirm(yellow("Reinstall Python dependencies?"), default=True)):
         _install_pip_requirements()
         for package in _read_private_requirements():
             _install_private_package(*package)

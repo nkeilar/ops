@@ -99,16 +99,26 @@ def rollback():
     restart_webserver()
 
 def restart_webserver(hard_reset=False):
-    """Restart the Gunicorn application webserver.
+    """Restart webserver.
 
     Requires the env keys:
 
         unit - short name of the app, assuming /etc/sv/%(unit)s is the
                 runit config path
+        webserver (optional) - if not set will assume Gunicorn
     """
     require('unit')
-    with settings(warn_only=True):
-        sudo('/etc/init.d/%(unit)s restart' % env)
+    if env.webserver == "apache2":
+        'Reload Apache to pick up new code changes.'
+        with settings(warn_only=True):
+            sudo("invoke-rc.d apache2 reload")
+    else:
+        'Restart the Gunicorn application webserver.'
+        with settings(warn_only=True):
+            #sudo('/etc/init.d/%(unit)s restart' % env)
+            sudo("sv restart %(unit)s" % env)
+            pass
+        
 
 def rechef():
     """Run the latest Chef cookbooks on all servers."""

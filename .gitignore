@@ -1,0 +1,14 @@
+media/images/
+site_media/media/images/
+search_index/
+logs/
+backup/
+apps/toadd/
+lib/
+static/multiselect/
+.settings/
+*.pyc
+.DS_Store
+*.db
+log.out
+

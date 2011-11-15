@@ -6,6 +6,10 @@ import os
 from buedafab.operations import run, put, chmod
 from buedafab import celery, db, tasks, notify, testing, utils
 from buedafab import deploy
+from buedafab.deploy.release import make_release, bootstrap_release_folders, alternative_release_path
+from buedafab.deploy import cron, packages
+from buedafab.deploy.utils import *
+#import buedafab
 
 def _git_deploy(release, skip_tests):
     starting_branch = utils.branch()
@@ -16,8 +20,9 @@ def _git_deploy(release, skip_tests):
     if not skip_tests and testing.test():
         abort(red("Unit tests did not pass -- must fix before deploying"))
 
-    local('git push %(master_remote)s' % env, capture=True)
-    deploy.release.make_release(release)
+    #local('git push %(master_remote)s' % env, capture=True)
+    #buedafab.deploy.release.make_release(release)
+    make_release(release)
 
     require('pretty_release')
     require('path')
@@ -30,7 +35,7 @@ def _git_deploy(release, skip_tests):
     deployed = False
     hard_reset = False
     deployed_versions = {}
-    deploy.release.bootstrap_release_folders()
+    bootstrap_release_folders()
     for release_path in env.release_paths:
         with cd(os.path.join(env.path, env.releases_root, release_path)):
             deployed_versions[run('git describe')] = release_path
@@ -38,11 +43,12 @@ def _git_deploy(release, skip_tests):
         % (env.host, deployed_versions)))
     if env.pretty_release not in deployed_versions:
         env.release_path = os.path.join(env.path, env.releases_root,
-                deploy.release.alternative_release_path())
+                alternative_release_path())
         with cd(env.release_path):
-            run('git fetch %(master_remote)s' % env, forward_agent=True)
-            run('git reset --hard %(release)s' % env)
-        deploy.cron.conditional_install_crontab(env.release_path, env.crontab,
+            run('git fetch %(master_remote)s --tag' % env, forward_agent=False)
+            run('git fetch %(master_remote)s' % env, forward_agent=False)
+            run("git reset --hard %(release)s" % env)
+        cron.conditional_install_crontab(env.release_path, env.crontab,
                 env.deploy_user)
         deployed = True
     else:
@@ -50,9 +56,9 @@ def _git_deploy(release, skip_tests):
         env.release_path = os.path.join(env.path, env.releases_root,
                 deployed_versions[env.pretty_release])
     with cd(env.release_path):
-        run('git submodule update --init --recursive', forward_agent=True)
-    hard_reset = deploy.packages.install_requirements(deployed)
-    deploy.utils.run_extra_deploy_tasks(deployed)
+        run('git submodule update --init --recursive', forward_agent=False)
+    hard_reset = packages.install_requirements(deployed)
+    run_extra_deploy_tasks(deployed)
     local('git checkout %s' % starting_branch, capture=True)
     chmod(os.path.join(env.path, env.releases_root), 'g+w', use_sudo=True)
     return deployed, hard_reset
@@ -76,7 +82,7 @@ def default_deploy(release=None, skip_tests=None):
 webpy_deploy = default_deploy
 tornado_deploy = default_deploy
 
-def django_deploy(release=None, skip_tests=None):
+def django_deploy(release=None, skip_tests=True):
     """Deploy a Django project according to the methodology defined in the
     README.
 
@@ -89,18 +95,48 @@ def django_deploy(release=None, skip_tests=None):
     require('unit')
     require('migrate')
     require('root_dir')
-
+    
     env.test_runner = testing.django_test_runner
 
     utils.store_deployed_version()
     deployed, hard_reset = _git_deploy(release, skip_tests)
+    #db.sync_all_migrate_fake(deployed)
     db.update_db(deployed)
     db.migrate(deployed)
     db.load_data()
     deploy.release.conditional_symlink_current_release(deployed)
     celery.update_and_restart_celery()
     tasks.restart_webserver(hard_reset)
-    notify.hoptoad_deploy(deployed)
-    notify.campfire_notify(deployed)
+    #notify.hoptoad_deploy(deployed)
+    #notify.campfire_notify(deployed)
     print(green("%(pretty_release)s is now deployed to %(deployment_type)s"
+        % env))
+    
+    
+def django_deploy_codeonly(release=None, skip_tests=True):
+    """Deploy a code for a  project and symlink it to current
+    
+    Only uploads and symlinks code. To be used in migrations where custom database 
+    update and migrations will occur.
+    """
+    require('hosts')
+    require('path')
+    require('unit')
+    require('migrate')
+    require('root_dir')
+    
+    env.test_runner = testing.django_test_runner
+
+    utils.store_deployed_version()
+    deployed, hard_reset = _git_deploy(release, skip_tests)
+    #db.sync_all_migrate_fake(deployed)
+    #db.update_db(deployed)
+    #db.migrate(deployed)
+    #db.load_data()
+    deploy.release.conditional_symlink_current_release(deployed)
+    #celery.update_and_restart_celery()
+    #tasks.restart_webserver(hard_reset)
+    #notify.hoptoad_deploy(deployed)
+    #notify.campfire_notify(deployed)
+    print(green("%(pretty_release)s is now uploaded to %(deployment_type)s"
         % env))

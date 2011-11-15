@@ -50,6 +50,31 @@ def migrate(deployed=False):
             (deployed or confirm(yellow("Migrate database?"), default=True))):
         django_manage_run("migrate")
         env.migrated = True
+        
+@runs_once
+def sync_all_migrate_fake(deployed=False):
+    """
+    Sync all apps and fake the migration to the currently deployed version using South. If
+    the app wasn't deployed (e.g. we are redeploying the same version for some
+    reason, this command will prompt the user to confirm that they want to
+    migrate.
+
+    Requires the env keys:
+
+        release_path -- remote path of the deployed app
+        deployment_type -- app environment to set before loading the data (i.e.
+                            which database should it be loaded into)
+        virtualenv -- path to this app's virtualenv (required to grab the
+                        correct Python executable)
+    """
+    require('release_path')
+    require('deployment_type')
+    require('virtualenv')
+    if (env.migrate and
+            (deployed or confirm(yellow("Fake migrate database?"), default=False))):
+        django_manage_run("syncdb --all")
+        django_manage_run("migrate --fake")
+        env.migrated = True
 
 @runs_once
 def update_db(deployed=False):

@@ -57,8 +57,13 @@ def tornado_test_runner(deployment_type=None):
 
 @runs_once
 def django_test_runner(deployment_type=None):
-    """Django test suite runer."""
+    """Django test suite runner."""
     command = './manage.py test'
     if deployment_type:
         command = 'DEPLOYMENT_TYPE=%s ' % deployment_type + command
     return local(command).return_code
+
+@runs_once
+def dummy_django_test_runner(deployment_type=None):
+    """Dummy test suite runner."""
+    return True

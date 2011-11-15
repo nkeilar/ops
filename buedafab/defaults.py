@@ -26,14 +26,14 @@ env.release_paths = ('a', 'b',)
 env.virtualenv = 'env'
 
 # Default SSH port for all servers
-env.ssh_port = 1222
+env.ssh_port = 22
 
 # Default commit ID to deploy if none is specificed, e.g. fab development deploy
 env.default_revision = 'HEAD'
 
 # User and group that owns the deployed files - you probably want to change this
-env.deploy_user = 'deploy'
-env.deploy_group = 'bueda'
+env.deploy_user = 'ubuntu'
+env.deploy_group = 'ubuntu'
 
 env.master_remote = 'origin'
 env.settings = "settings.py"
@@ -79,9 +79,9 @@ if 'AWS_ACCESS_KEY_ID' in os.environ and 'AWS_SECRET_ACCESS_KEY' in os.environ:
         _s3_connection = boto.s3.connection.S3Connection(env.aws_access_key,
                 env.aws_secret_key)
 
-        env.s3_bucket_name = 'bueda.deploy'
-        _bucket = _s3_connection.get_bucket(env.s3_bucket_name)
-        env.s3_key = boto.s3.connection.Key(_bucket)
+#        env.s3_bucket_name = 'noshly.deploy'
+#        _bucket = _s3_connection.get_bucket(env.s3_bucket_name)
+#        env.s3_key = boto.s3.connection.Key(_bucket)
 else:
     warn('No S3 key set. To use S3 or EC2 for deployment, '
         'you will need to set one -- '
